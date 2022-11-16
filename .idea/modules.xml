@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/Entity-entity-v1.iml" filepath="$PROJECT_DIR$/.idea/Entity-entity-v1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/common-util/common-util.iml" filepath="$PROJECT_DIR$/common-util/common-util.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sunbird-entity/entity.iml" filepath="$PROJECT_DIR$/sunbird-entity/entity.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sunbird-es-utils/sunbird-es-utils.iml" filepath="$PROJECT_DIR$/sunbird-es-utils/sunbird-es-utils.iml" />
+    </modules>
+  </component>
+</project>
