@@ -64,7 +64,7 @@ public class BaseController {
 
 			HttpHeaders headers = new HttpHeaders();
 			headers.add(Constants.Parameters.AUTHORIZATION, serverProperties.getAuthAPIKey());
-			headers.add(Constants.Parameters.X_USER_TOKEN, token);
+//			headers.add(Constants.Parameters.X_USER_TOKEN, token);
 
 			Map<String, Object> result = mapper
 					.convertValue(OutboundRequestHandler.makeRestCall(url, null, headers, HttpMethod.GET), Map.class);
