@@ -124,3 +124,6 @@ spring.datasource.password=test123
 - Run `EntityApplication.java`.
 
 ---
+
+
+API Guide - https://github.com/Sphere/entity-v1/blob/master/openAPI3-documentation.yaml
