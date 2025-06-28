@@ -1,0 +1,107 @@
+openapi: 3.0.3
+info:
+  title: Entity Competency API
+  description: API documentation for managing and retrieving FRAC entities such as Competency, Role, and Position.
+  version: 1.0.0
+
+servers:
+  - url: https://your-hostname.com
+
+paths:
+  /entityCompetency/getEntityById/{id}:
+    post:
+      summary: Get entity by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the entity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filter:
+                  type: object
+                  properties:
+                    isDetail:
+                      type: boolean
+                  required: [isDetail]
+              required: [filter]
+      responses:
+        '200':
+          description: Entity retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  type: "Competency"
+                  name: "Injectables, IV and fluid therapy"
+                  description: "Administer injectables, insert IV Line and provide fluid therapy"
+                  additionalProperties:
+                    Code: "ME73"
+                    subject: "Medical Surgical Nursing"
+                    competencyLevelDescription: "[{...}]"
+
+  /addUpdateEntity:
+    post:
+      summary: Add or update an entity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                name:
+                  type: string
+                description:
+                  type: string
+                id:
+                  type: integer
+                additionalProperties:
+                  type: object
+              required: [type, name, description]
+      responses:
+        '200':
+          description: Entity added or updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: "Entity updated successfully"
+                  status: "success"
+
+  /getAllEntity:
+    post:
+      summary: Get all entities by filter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                search:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+              required: [search]
+      responses:
+        '200':
+          description: Entities retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
