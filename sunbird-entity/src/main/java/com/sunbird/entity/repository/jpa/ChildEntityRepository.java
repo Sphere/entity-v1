@@ -1,4 +1,4 @@
-package com.sunbird.entity.repository;
+package com.sunbird.entity.repository.jpa;
 
 import javax.transaction.Transactional;
 

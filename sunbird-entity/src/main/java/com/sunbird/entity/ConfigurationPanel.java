@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 import com.sunbird.entity.model.dao.ChildEntityDao;
 import com.sunbird.entity.model.dao.ParentEntityDao;
-import com.sunbird.entity.repository.ParentEntityRepository;
+import com.sunbird.entity.repository.jpa.ParentEntityRepository;
 import com.sunbird.entity.util.Constants;
 import com.sunbird.entity.util.QueryUtils;
 

@@ -1,4 +1,4 @@
-package com.sunbird.entity.repository;
+package com.sunbird.entity.repository.jpa;
 
 import java.util.List;
 import java.util.Map;

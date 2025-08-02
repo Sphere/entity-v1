@@ -6,6 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.data.elasticsearch.repository.config.EnableElasticsearchRepositories;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -17,6 +19,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 
 @SpringBootApplication
 @ComponentScan(basePackages = "com.sunbird.entity")
+@EnableJpaRepositories(basePackages = "com.sunbird.entity.repository.jpa")
+@EnableElasticsearchRepositories(basePackages = "com.sunbird.entity.repository.elasticsearch")
 public class EntityApplication {
 
 	public static void main(String[] args) {
