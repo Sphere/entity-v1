@@ -12,7 +12,7 @@ import javax.persistence.*;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Document(indexName = "position_role_mapping")
+@Document(indexName = "position_role_mapping",type = "doc")
 public class PositionRoleMapping {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

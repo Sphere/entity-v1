@@ -82,7 +82,7 @@ public class CompetencyContoller extends BaseController{
         List<Map<String, Object>> competencies = entityRelationshipService.getCompetencyDetailsForRole(roleId);
         return ResponseEntity.ok(competencies);
     }
-    
+
 
     // --- API 3: Search competencies (with optional keyword) ---
     @GetMapping("/competencies")

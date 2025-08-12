@@ -18,7 +18,7 @@ import com.sunbird.entity.repository.jpa.EntitiesRepository;
 import com.sunbird.entity.repository.jpa.EntityRepository;
 import com.sunbird.entity.service.EntityRelationshipService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
+import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -31,7 +31,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
     private RoleCompetencyRepository roleCompetencyRepository;
 
     @Autowired
-    private ElasticsearchRestTemplate esTemplate;
+    private ElasticsearchTemplate esTemplate;
 
     @Autowired
     private PositionRoleRepository positionRoleRepository;

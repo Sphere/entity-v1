@@ -11,7 +11,7 @@ import javax.persistence.*;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Document(indexName = "role_competency_mapping")
+@Document(indexName = "activity_competency_level_mapping",type = "doc")
 public class RoleCompetencyMapping {
 
     @Id

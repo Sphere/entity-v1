@@ -16,7 +16,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Document(indexName = "competency_level_mapping")
+@Document(indexName = "competency_level_mapping",type = "doc")
 public class CompetencyLevelMapping {
 
     @Id
