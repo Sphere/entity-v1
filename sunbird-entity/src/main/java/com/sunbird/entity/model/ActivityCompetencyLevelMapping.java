@@ -9,6 +9,7 @@ import org.springframework.data.elasticsearch.annotations.Document;
 
 import javax.persistence.*;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -24,10 +25,8 @@ public class ActivityCompetencyLevelMapping {
     @Column(name = "activity_id", nullable = false)
     private Integer activityId;
 
-    @Column(name = "competency_id", nullable = false)
-    private Integer competencyId;
-
     @Type(type = "json")
-    @Column(name = "level_ids", columnDefinition = "json")
-    private List<Integer> levelIds; // Ordered list
+    @Column(name = "competency_levels_map", columnDefinition = "json")
+    private Map<Integer, List<Integer>> competencyLevelsMap;
 }
+

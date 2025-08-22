@@ -9,7 +9,7 @@ public interface EntityRelationshipService {
 
     void savePositionRoleMappings(PositionRoleRequest request);
 
-    void saveRoleCompetencyMappings(RoleCompetencyRequest request);
+    void saveRoleActivityMappings(RoleActivityRequest request);
 
     void saveCompetencyLevelMapping(CompetencyLevelRequest request);
 
@@ -17,7 +17,7 @@ public interface EntityRelationshipService {
 
     Map<String, Object> getFullHierarchy(Integer positionId);
 
-    List<Map<String, Object>> getCompetencyDetailsForRole(Integer roleId);
+    List<Map<String, Object>> getActivitiesDetailsForRole(Integer roleId);
 
     List<Map<String, Object>> searchCompetencies(String keyword);
 }

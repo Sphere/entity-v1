@@ -7,12 +7,13 @@ import lombok.Setter;
 import org.springframework.data.elasticsearch.annotations.Document;
 
 import javax.persistence.*;
+import java.util.List;
+
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
-@Document(indexName = "activity_competency_level_mapping",type = "doc")
-public class RoleCompetencyMapping {
+@Document(indexName = "role_activity_mapping",type = "doc")
+public class RoleActivityMapping {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,7 +22,12 @@ public class RoleCompetencyMapping {
     @Column(name = "role_id", nullable = false)
     private Integer roleId;
 
-    @Column(name = "competency_id", nullable = false)
-    private Integer competencyId;
+    @Column(name = "activity_ids", nullable = false)
+    private List<Integer> activityIds;
+
+    public RoleActivityMapping(Integer roleId, List<Integer> activityIds) {
+        this.roleId = roleId;
+        this.activityIds = activityIds;
+    }
 }
 

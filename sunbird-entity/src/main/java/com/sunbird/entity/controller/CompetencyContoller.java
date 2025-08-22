@@ -6,7 +6,8 @@ import com.sunbird.entity.model.dao.EntityDao;
 import com.sunbird.entity.model.requestDTO.ActivityCompetencyLevelRequest;
 import com.sunbird.entity.model.requestDTO.CompetencyLevelRequest;
 import com.sunbird.entity.model.requestDTO.PositionRoleRequest;
-import com.sunbird.entity.model.requestDTO.RoleCompetencyRequest;
+import com.sunbird.entity.model.requestDTO.RoleActivityRequest;
+import com.sunbird.entity.model.requestDTO.RoleActivityRequest;
 import com.sunbird.entity.repository.jpa.EntitiesRepository;
 import com.sunbird.entity.repository.jpa.EntityRepository;
 import com.sunbird.entity.service.EntityRelationshipService;
@@ -51,10 +52,10 @@ public class CompetencyContoller extends BaseController{
         return ResponseEntity.ok("Roles linked to position");
     }
 
-    @PostMapping("/role-competency")
-    public ResponseEntity<String> linkCompetenciesToRole(@RequestBody RoleCompetencyRequest request) {
-        entityRelationshipService.saveRoleCompetencyMappings(request);
-        return ResponseEntity.ok("Competencies linked to role");
+    @PostMapping("/role-activity")
+    public ResponseEntity<String> linkActivitiesToRole(@RequestBody RoleActivityRequest request) {
+        entityRelationshipService.saveRoleActivityMappings(request);
+        return ResponseEntity.ok("Activities linked to role");
     }
 
     @PostMapping("/competency-level")
@@ -79,7 +80,7 @@ public class CompetencyContoller extends BaseController{
     // --- API 2: Get competencies and child data from role ID ---
     @GetMapping("/role/{roleId}/competencies")
     public ResponseEntity<List<Map<String, Object>>> getCompetenciesByRole(@PathVariable Integer roleId) {
-        List<Map<String, Object>> competencies = entityRelationshipService.getCompetencyDetailsForRole(roleId);
+        List<Map<String, Object>> competencies = entityRelationshipService.getActivitiesDetailsForRole(roleId);
         return ResponseEntity.ok(competencies);
     }
 

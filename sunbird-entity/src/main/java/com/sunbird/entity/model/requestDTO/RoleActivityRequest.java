@@ -5,7 +5,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class RoleCompetencyRequest {
+public class RoleActivityRequest {
     private Integer roleId;
-    private List<Integer> competencyIds;
+    private List<Integer> activityIds;
 }

@@ -7,5 +7,5 @@ import org.springframework.data.elasticsearch.repository.ElasticsearchRepository
 import java.util.List;
 
 public interface ActivityCompetencyLevelRepository extends ElasticsearchRepository<ActivityCompetencyLevelMapping, String> {
-    List<ActivityCompetencyLevelMapping> findByCompetencyId(Integer compId);
+    List<ActivityCompetencyLevelMapping> findByActivityId(Integer actId);
 }
