@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.sunbird.entity.model.Bookmark;
-import com.sunbird.entity.model.EntityRelation;
 import com.sunbird.entity.model.EntityVerification;
 import com.sunbird.entity.model.SearchObject;
 import com.sunbird.entity.model.UserProfile;
@@ -15,8 +14,6 @@ public interface EntityService {
 	public EntityDao addUpdateEntity(EntityDao entityDao, String userId);
 
 	public EntityDao getEntityById(Integer id, SearchObject searchObject);
-
-	public Boolean addEntityRelation(EntityRelation entityRelation);
 
 	Boolean bookmarkEntity(Bookmark bookmarkEntityNode, String userId);
 

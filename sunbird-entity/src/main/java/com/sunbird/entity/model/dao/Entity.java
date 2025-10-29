@@ -8,6 +8,7 @@ import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.TypeDef;
 import org.hibernate.annotations.TypeDefs;
+import org.springframework.data.elasticsearch.annotations.Document;
 
 import javax.persistence.*;
 import java.util.Date;
@@ -20,6 +21,7 @@ import java.util.Map;
 @javax.persistence.Entity(name = "EntityDao")
 @DynamicUpdate
 @TypeDefs({ @TypeDef(name = "json", typeClass = JsonType.class) })
+@Document(indexName = "entities",type = "doc")
 public class Entity implements Cloneable {
 
 	@Id
@@ -51,9 +53,6 @@ public class Entity implements Cloneable {
 	@Column(name = "level_id")
 	private int levelId;
 
-	@Column(name = "is_active")
-	private Boolean isActive;
-
 	@Temporal(TemporalType.TIMESTAMP)
 	@Column(name = "created_date")
 	private Date createdDate;
@@ -75,18 +74,17 @@ public class Entity implements Cloneable {
 	@Column(name = "reviewed_by")
 	private String reviewedBy;
 
+	@Type(type = "json")
+	@Column(name = "translation", columnDefinition = "json")
+	private Map<String, Object> translation;
+
+	@Column
+	private String code;
+
+
 	@Transient
 	private List<Map<String, Object>> children;
 
-	@PrePersist
-	private void prePersistFunction() {
-		if (this.isActive == null) {
-			this.isActive = Boolean.TRUE;
-		}
-		if (this.status == null) {
-			this.status = "NEW";
-		}
-	}
 
 	@PostPersist
 	public void preUpdateFunction() {
