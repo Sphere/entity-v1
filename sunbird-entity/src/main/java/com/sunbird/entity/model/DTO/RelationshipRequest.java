@@ -1,4 +1,4 @@
-package com.sunbird.entity.model.requestDTO;
+package com.sunbird.entity.model.DTO;
 
 import lombok.Data;
 import java.util.List;

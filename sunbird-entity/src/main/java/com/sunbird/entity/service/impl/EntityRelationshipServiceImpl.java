@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sunbird.entity.model.*;
 import com.sunbird.entity.model.dao.Entity;
-import com.sunbird.entity.model.requestDTO.*;
+import com.sunbird.entity.model.DTO.*;
 import com.sunbird.entity.repository.elasticsearch.*;
 import com.sunbird.entity.repository.jpa.EntitiesRepository;
 import com.sunbird.entity.repository.elasticsearch.EntityESRepository;
@@ -40,93 +40,6 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
     private EntityRelationshipRepository entityRelationshipRepository;
 
 
-    @Override
-    public Map<String, Object> getFullHierarchy(Integer positionId) {
-        return null;
-//        Map<String, Object> result = new HashMap<>();
-//
-//        // Position
-//        Optional<Entity> positionOpt = entityRepository.findById(positionId);
-//        if (!positionOpt.isPresent()) return result;
-//
-//        Map<String, Object> positionMap = entityToMap(positionOpt.get());
-//
-//        // Roles under position
-//        List<PositionRoleMapping> roleMappings = positionRoleRepository.findByPositionId(positionId);
-//        List<Map<String, Object>> rolesList = new ArrayList<>();
-//
-//        for (PositionRoleMapping prMapping : roleMappings) {
-//            Integer roleId = prMapping.getRoleId();
-//            Optional<Entity> roleOpt = entityRepository.findById(roleId);
-//            if (!roleOpt.isPresent()) continue;
-//
-//            Map<String, Object> roleMap = new HashMap<>();
-//            roleMap.put("role", entityToMap(roleOpt.get()));
-//
-//            // Activities under role
-//            List<RoleActivityMapping> roleActivityMappings = roleActivityRepository.findByRoleId(roleId);
-//            List<Map<String, Object>> activitiesList = new ArrayList<>();
-//
-//            for (RoleActivityMapping raMapping : roleActivityMappings) {
-//                for (Integer activityId : raMapping.getActivityIds()) {
-//                    Optional<Entity> activityOpt = entityRepository.findById(activityId);
-//                    if (!activityOpt.isPresent()) continue;
-//
-//                    Map<String, Object> activityMap = new HashMap<>();
-//                    activityMap.put("activity", entityToMap(activityOpt.get()));
-//
-//                    // Fetch the mapping which has competency -> list of levels
-//                    Optional<ActivityCompetencyLevelMapping> compMappingOpt =
-//                            activityCompetencyLevelRepository.findById("actCompLevel:" + activityId);
-//
-//                    List<Map<String, Object>> competenciesList = new ArrayList<>();
-//
-//                    if (compMappingOpt.isPresent()) {
-//                        ActivityCompetencyLevelMapping compMapping = compMappingOpt.get();
-//                        Map<Integer, List<Integer>> competencyLevelsMap = compMapping.getCompetencyLevelsMap();
-//
-//                        if (competencyLevelsMap != null) {
-//                            for (Map.Entry<Integer, List<Integer>> entry : competencyLevelsMap.entrySet()) {
-//                                Integer compId = entry.getKey();
-//                                List<Integer> levelIds = entry.getValue();
-//
-//                                Optional<Entity> compOpt = entityRepository.findById(compId);
-//                                if (!compOpt.isPresent()) continue;
-//
-//                                Map<String, Object> compMap = new HashMap<>();
-//                                compMap.put("competency", entityToMap(compOpt.get()));
-//
-//                                List<Map<String, Object>> levelsList = new ArrayList<>();
-//                                for (Integer levelId : levelIds) {
-//                                    Optional<Entity> levelOpt = entityRepository.findById(levelId);
-//                                    levelOpt.ifPresent(level -> levelsList.add(entityToMap(level)));
-//                                }
-//
-//                                compMap.put("levels", levelsList);
-//                                competenciesList.add(compMap);
-//                            }
-//                        }
-//                    }
-//
-//                    // attach competencies under activity
-//                    activityMap.put("children", competenciesList);
-//                    activitiesList.add(activityMap);
-//                }
-//            }
-//
-//            // attach activities under role
-//            roleMap.put("children", activitiesList);
-//            rolesList.add(roleMap);
-//        }
-//
-//        // attach roles under position
-//        positionMap.put("children", rolesList);
-//        result.put("position", positionMap);
-//
-//        return result;
-    }
-
-
     private Map<String, Object> entityToMap(Entity entity) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", entity.getId());
@@ -147,67 +60,6 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
         map.put("children", entity.getChildren());
         return map;
     }
-
-    @Override
-    public List<Map<String, Object>> getDetailsForSpecifiedEntityType(String type, Integer typeId) {
-//        if(type.equalsIgnoreCase("role")){
-//            List<RoleActivityMapping> mappings = roleActivityRepository.findByRoleId(typeId);
-//            List<Map<String, Object>> output = new ArrayList<>();
-//
-//            for (RoleActivityMapping mapping : mappings) {
-//                for (Integer activityId : mapping.getActivityIds()) {
-//                    Optional<Entity> actOpt = entityRepository.findById(activityId);
-//                    if (!actOpt.isPresent()) continue;
-//
-//                    Map<String, Object> actMap = new HashMap<>();
-//                    actMap.put("activity", actOpt.get());
-//
-//                    // Fetch the competency -> levels mapping
-//                    Optional<ActivityCompetencyLevelMapping> compMappingOpt =
-//                            activityCompetencyLevelRepository.findById("actCompLevel:" + activityId);
-//
-//                    if (compMappingOpt.isPresent()) {
-//                        ActivityCompetencyLevelMapping compMapping = compMappingOpt.get();
-//                        Map<Integer, List<Integer>> competencyLevelsMap = compMapping.getCompetencyLevelsMap();
-//                        List<Map<String, Object>> competenciesList = new ArrayList<>();
-//
-//                        if (competencyLevelsMap != null) {
-//                            for (Map.Entry<Integer, List<Integer>> entry : competencyLevelsMap.entrySet()) {
-//                                Integer compId = entry.getKey();
-//                                List<Integer> levelIds = entry.getValue();
-//
-//                                Optional<Entity> compOpt = entityRepository.findById(compId);
-//                                if (!compOpt.isPresent()) continue;
-//
-//                                Map<String, Object> compMap = new HashMap<>();
-//                                compMap.put("competency", compOpt.get());
-//
-//                                List<Map<String, Object>> levelsList = new ArrayList<>();
-//                                for (Integer levelId : levelIds) {
-//                                    Optional<Entity> levelOpt = entityRepository.findById(levelId);
-//                                    levelOpt.ifPresent(level -> levelsList.add(Map.of("level", level)));
-//                                }
-//
-//                                compMap.put("levels", levelsList);
-//                                competenciesList.add(compMap);
-//                            }
-//                        }
-//
-//                        actMap.put("competencies", competenciesList);
-//                    }
-//
-//                    output.add(actMap);
-//                }
-//            }
-//
-//            return output;
-//        }
-//        else if(type.equalsIgnoreCase("")){
-//
-//        }
-      return null;
-    }
-
 
     @Override
     public List<Entity> parseCsv(MultipartFile file) {
@@ -353,6 +205,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
 
     @Override
     public Entity createEntity(Entity entity) {
+        entity.setStatus("Active");
         Entity savedEntity = entityRepository.save(entity);
         entityESRepository.save(savedEntity);
 
@@ -418,6 +271,226 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
     }
 
     @Override
+    public List<MappingResultDTO> saveGenericRelationshipList(List<RelationshipRequest> requests) {
+        List<MappingResultDTO> results = new ArrayList<>();
+
+        for (RelationshipRequest request : requests) {
+            MappingResultDTO result = new MappingResultDTO();
+            result.setParentId(request.getParentId());
+            result.setType(request.getType());
+
+            try {
+                // Call existing single-save method
+                saveGenericRelationship(request);
+
+                result.setStatus("SUCCESS");
+                result.setMessage("Linked successfully");
+            } catch (Exception e) {
+                result.setStatus("FAILED");
+                result.setMessage(e.getMessage());
+            }
+
+            results.add(result);
+        }
+
+        return results;
+    }
+
+    @Override
+    public Entity updateEntity(Entity incoming) {
+        if (incoming.getId() == null) {
+            throw new IllegalArgumentException("Entity id cannot be null for update");
+        }
+
+        // Fetch existing entity from DB
+        Optional<Entity> existingOpt = entityRepository.findById(incoming.getId());
+        if (existingOpt.isEmpty()) {
+            throw new NoSuchElementException("Entity not found with id: " + incoming.getId());
+        }
+
+        Entity existing = existingOpt.get();
+
+        // Update only provided fields
+        if (incoming.getType() != null) existing.setType(incoming.getType());
+        if (incoming.getName() != null) existing.setName(incoming.getName());
+        if (incoming.getDescription() != null) existing.setDescription(incoming.getDescription());
+        if (incoming.getAdditionalProperties() != null)
+            existing.setAdditionalProperties(incoming.getAdditionalProperties());
+        if (incoming.getStatus() != null) existing.setStatus(incoming.getStatus());
+        if (incoming.getSource() != null) existing.setSource(incoming.getSource());
+        if (incoming.getLevel() != null) existing.setLevel(incoming.getLevel());
+        existing.setLevelId(incoming.getLevelId()); // levelId is primitive, always update
+        if (incoming.getCode() != null) existing.setCode(incoming.getCode());
+        if (incoming.getTranslation() != null) existing.setTranslation(incoming.getTranslation());
+        if (incoming.getCreatedBy() != null) existing.setCreatedBy(incoming.getCreatedBy());
+        if (incoming.getUpdatedBy() != null) existing.setUpdatedBy(incoming.getUpdatedBy());
+        if (incoming.getCreatedDate() != null) existing.setCreatedDate(incoming.getCreatedDate());
+        if (incoming.getUpdatedDate() != null) existing.setUpdatedDate(incoming.getUpdatedDate());
+        if (incoming.getReviewedBy() != null) existing.setReviewedBy(incoming.getReviewedBy());
+        if (incoming.getReviewedDate() != null) existing.setReviewedDate(incoming.getReviewedDate());
+
+        // Merge children if provided
+        if (incoming.getChildren() != null && !incoming.getChildren().isEmpty()) {
+            List<Map<String, Object>> mergedChildren = new ArrayList<>();
+            if (existing.getChildren() != null) {
+                mergedChildren.addAll(existing.getChildren());
+            }
+            mergedChildren.addAll(incoming.getChildren());
+            // Optional: remove duplicates
+            List<Map<String, Object>> distinctChildren = mergedChildren.stream()
+                    .distinct()
+                    .collect(Collectors.toList());
+            existing.setChildren(distinctChildren);
+        }
+
+        // Save updated entity
+        return entityRepository.save(existing);
+    }
+
+    @Override
+    public List<Map<String, Object>> getFullHierarchy(String type, String parentCode) {
+
+        // 1️⃣ Fetch root entity by code
+        Entity root = entityESRepository.findByCode(parentCode)
+                .orElseThrow(() -> new NoSuchElementException("Entity not found with code: " + parentCode));
+
+        if (!type.equalsIgnoreCase(root.getType())) {
+            throw new IllegalArgumentException("Entity type mismatch. Expected: " + type + ", Found: " + root.getType());
+        }
+
+        // 2️⃣ Convert root to map
+        Map<String, Object> rootMap = entityToMap(root);
+
+        // 3️⃣ Recursively attach children
+        attachChildrenFromRelationship(rootMap, root);
+
+        return List.of(rootMap);
+    }
+
+    /**
+     * Recursive function to attach children based on relationship index.
+     * Handles activity→competency→level mapping and stops cleanly at levels.
+     */
+    private void attachChildrenFromRelationship(Map<String, Object> parentMap, Entity parent) {
+
+        String parentCode = parent.getCode();
+        String parentType = parent.getType();
+
+        // ✅ Determine relationship type dynamically
+        String relationshipType = getRelationshipTypeForParent(parentType);
+
+        // Construct relationship ID (e.g. POSITION_ROLE:P1)
+        String mappingId = relationshipType + ":" + parentCode;
+
+        Optional<EntityRelationship> relOpt = entityRelationshipRepository.findById(mappingId);
+
+        List<Map<String, Object>> childrenList = new ArrayList<>();
+
+        // 1️⃣ If relationship exists — process it
+        if (relOpt.isPresent()) {
+            EntityRelationship relationship = relOpt.get();
+
+            // ---- Direct children ----
+            if (relationship.getChildIds() != null) {
+                for (String childCode : relationship.getChildIds()) {
+                    entityESRepository.findByCode(childCode).ifPresent(child -> {
+                        Map<String, Object> childMap = entityToMap(child);
+                        attachChildrenFromRelationship(childMap, child); // recursion
+                        childrenList.add(childMap);
+                    });
+                }
+            }
+
+            // ---- Nested children from childMap ----
+            if (relationship.getChildMap() != null) {
+                for (Map.Entry<String, List<String>> entry : relationship.getChildMap().entrySet()) {
+                    String childParentCode = entry.getKey();
+                    List<String> grandChildCodes = entry.getValue();
+
+                    entityESRepository.findByCode(childParentCode).ifPresent(childParent -> {
+                        Map<String, Object> childParentMap = entityToMap(childParent);
+
+                        List<Map<String, Object>> grandChildrenList = new ArrayList<>();
+                        for (String grandChildCode : grandChildCodes) {
+                            entityESRepository.findByCode(grandChildCode).ifPresent(grandChild -> {
+                                Map<String, Object> grandChildMap = entityToMap(grandChild);
+                                attachChildrenFromRelationship(grandChildMap, grandChild); // recursion
+                                grandChildrenList.add(grandChildMap);
+                            });
+                        }
+
+                        if (!grandChildrenList.isEmpty()) {
+                            childParentMap.put("children", grandChildrenList);
+                        }
+
+                        childrenList.add(childParentMap);
+                    });
+                }
+            }
+        }
+        // 2️⃣ If no relationship found — throw error for invalid hierarchy (safety)
+        else {
+            // If there’s truly no mapping for this type, fail gracefully for invalid parent
+            if (!"competency".equalsIgnoreCase(parentType) && !"level".equalsIgnoreCase(parentType)) {
+                throw new IllegalArgumentException("No relationship mapping found for parent type: " + parentType + " and code: " + parentCode);
+            }
+        }
+
+        // 3️⃣ Competency → attach levels directly only if NOT already linked via relationship
+        if ("competency".equalsIgnoreCase(parentType)) {
+            boolean alreadyHasLevels = childrenList.stream()
+                    .anyMatch(child -> "level".equalsIgnoreCase((String) child.get("type")));
+
+            if (!alreadyHasLevels) {
+                String competencyCode = parent.getCode();
+
+                List<Entity> levels = entityESRepository.findByType("level").stream()
+                        .filter(level -> level.getLevel() != null && level.getLevel().endsWith("_" + competencyCode))
+                        .filter(level -> "Active".equalsIgnoreCase(level.getStatus()))
+                        .collect(Collectors.toList());
+
+                if (!levels.isEmpty()) {
+                    List<Map<String, Object>> levelChildren = levels.stream()
+                            .map(this::entityToMap)
+                            .collect(Collectors.toList());
+                    childrenList.addAll(levelChildren);
+                }
+            }
+        }
+
+        // 4️⃣ Final step — attach list to parent map
+        if (!childrenList.isEmpty()) {
+            parentMap.put("children", childrenList);
+        }
+    }
+
+
+    /**
+     * Maps parent type to its relationship type in the relationship index.
+     * Returns null for terminal types (like level).
+     */
+    private String getRelationshipTypeForParent(String parentType) {
+        if (parentType == null) {
+            throw new IllegalArgumentException("Parent type cannot be null");
+        }
+
+        switch (parentType.toLowerCase()) {
+            case "position":
+                return "POSITION_ROLE";
+            case "role":
+                return "ROLE_ACTIVITY";
+            case "activity":
+                return "ACTIVITY_COMPETENCY_LEVEL";
+            case "competency":
+                return "COMPETENCY_LEVEL";
+            case "level":
+                return null; // ✅ stop recursion at level
+            default:
+                throw new IllegalArgumentException("Unknown parent type: " + parentType);
+        }
+    }
+
+
     public void saveGenericRelationship(RelationshipRequest request) {
         if (request.getParentId() == null) {
             throw new IllegalArgumentException("parentId cannot be null");
@@ -435,9 +508,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
         if (request.getChildIds() != null) {
             List<String> newChildren = new ArrayList<>(existingOpt.map(EntityRelationship::getChildIds).orElse(List.of()));
             newChildren.addAll(request.getChildIds());
-            mapping.setChildIds(newChildren.stream()
-                    .distinct()
-                    .collect(Collectors.toList()));
+            mapping.setChildIds(newChildren.stream().distinct().collect(Collectors.toList()));
         }
 
         if (request.getChildMap() != null) {
@@ -447,71 +518,61 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
         }
 
         entityRelationshipRepository.save(mapping);
-
     }
 
     @Override
     public List<Map<String, Object>> searchEntities(String type, String keyword) {
-        // 1️⃣ Fetch all parent entities of the given type from ES
+
+        // 1️⃣ Fetch all parents by type
         List<Entity> parents = entityESRepository.findByType(type);
 
         if (keyword != null && !keyword.trim().isEmpty()) {
+            String lowerKeyword = keyword.toLowerCase();
+
             parents = parents.stream()
-                    .filter(p -> p.getName() != null &&
-                            p.getName().toLowerCase().contains(keyword.toLowerCase()))
+                    .filter(p -> {
+                        boolean matches = false;
+
+                        // Check name, description, code
+                        if (p.getName() != null && p.getName().toLowerCase().contains(lowerKeyword)) matches = true;
+                        else if (p.getDescription() != null && p.getDescription().toLowerCase().contains(lowerKeyword)) matches = true;
+                        else if (p.getCode() != null && p.getCode().toLowerCase().contains(lowerKeyword)) matches = true;
+
+                        // Check additionalProperties values
+                        if (!matches && p.getAdditionalProperties() != null) {
+                            matches = p.getAdditionalProperties().values().stream()
+                                    .anyMatch(val -> val != null && val.toString().toLowerCase().contains(lowerKeyword));
+                        }
+
+                        return matches;
+                    })
                     .collect(Collectors.toList());
         }
+
+        // 2️⃣ Filter for default active
+        parents = parents.stream()
+                .filter(p -> "Active".equalsIgnoreCase(p.getStatus()))
+                .collect(Collectors.toList());
 
         List<Map<String, Object>> result = new ArrayList<>();
 
         for (Entity parent : parents) {
             Map<String, Object> parentMap = entityToMap(parent);
 
-            // 2️⃣ Fetch child IDs from relationship mapping
-            String mappingId = type.toUpperCase() + ":" + parent.getId();
-            Optional<EntityRelationship> relationshipOpt = entityRelationshipRepository.findById(mappingId);
+            if ("competency".equalsIgnoreCase(parent.getType())) {
+                String competencyCode = parent.getCode();
 
-            if (relationshipOpt.isPresent()) {
-                EntityRelationship relationship = relationshipOpt.get();
-                List<String> childIds = relationship.getChildIds(); // direct children
-                Map<String, List<String>> childMap = relationship.getChildMap(); // nested children
+                List<Entity> levels = entityESRepository.findByType("level").stream()
+                        .filter(level -> level.getLevel() != null &&
+                                level.getLevel().endsWith("_" + competencyCode))
+                        .filter(level -> "Active".equalsIgnoreCase(level.getStatus()))
+                        .collect(Collectors.toList());
 
-                List<Map<String, Object>> childrenList = new ArrayList<>();
-
-                // 3️⃣ Fetch direct children
-                if (childIds != null) {
-                    for (String childId : childIds) {
-                        entityESRepository.findById(Integer.valueOf(childId)).ifPresent(child -> childrenList.add(entityToMap(child)));
-                    }
-                }
-
-                // 4️⃣ Fetch nested children from childMap (e.g., competency -> levels)
-                if (childMap != null) {
-                    for (Map.Entry<String, List<String>> entry : childMap.entrySet()) {
-                        String childParentId = entry.getKey();
-                        List<String> grandChildIds = entry.getValue();
-
-                        entityESRepository.findById(Integer.valueOf(childParentId)).ifPresent(childParent -> {
-                            Map<String, Object> childParentMap = entityToMap(childParent);
-
-                            List<Map<String, Object>> grandChildrenList = new ArrayList<>();
-                            for (String grandChildId : grandChildIds) {
-                                entityESRepository.findById(Integer.valueOf(grandChildId)).ifPresent(grandChild ->
-                                        grandChildrenList.add(entityToMap(grandChild))
-                                );
-                            }
-
-                            if (!grandChildrenList.isEmpty()) {
-                                childParentMap.put("children", grandChildrenList);
-                            }
-
-                            childrenList.add(childParentMap);
-                        });
-                    }
-                }
-
-                if (!childrenList.isEmpty()) {
-                    parentMap.put("children", childrenList);
+                if (!levels.isEmpty()) {
+                    List<Map<String, Object>> children = levels.stream()
+                            .map(this::entityToMap)
+                            .collect(Collectors.toList());
+                    parentMap.put("children", children);
                 }
             }
 
@@ -520,6 +581,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
 
         return result;
     }
+
 
 
 

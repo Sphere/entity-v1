@@ -1,11 +1,13 @@
 package com.sunbird.entity.controller;
 
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sunbird.entity.model.dao.Entity;
-import com.sunbird.entity.model.requestDTO.*;
-import com.sunbird.entity.model.requestDTO.RoleActivityRequest;
+import com.sunbird.entity.model.DTO.*;
 import com.sunbird.entity.repository.jpa.EntitiesRepository;
 import com.sunbird.entity.service.EntityRelationshipService;
+import com.sunbird.entity.util.ResponseUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,9 +17,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/v1/")
+@RequestMapping("/v1/frac/entity/")
 public class EntityController extends BaseController{
 
     @Autowired
@@ -26,63 +29,181 @@ public class EntityController extends BaseController{
     @Autowired
     private EntityRelationshipService entityRelationshipService;
 
-    @PostMapping("/entity")
-    public ResponseEntity<Entity> createEntity(@RequestBody Entity entity) {
-        Entity saved = entityRelationshipService.createEntity(entity);
+    @PostMapping("/create")
+    public ResponseEntity<ResponseDTO<EntityDataDTO>> createEntity(
+            @RequestBody RequestDTO<EntityDataDTO> requestDTO) {
 
-        return ResponseEntity.ok(saved);
+        try {
+            EntityDataDTO dto = requestDTO.getRequest();
+            Entity entity = new ObjectMapper().convertValue(dto, Entity.class);
+
+            Entity savedEntity = entityRelationshipService.createEntity(entity);
+
+            EntityDataDTO responseData = new ObjectMapper().convertValue(savedEntity, EntityDataDTO.class);
+
+            ResponseDTO<EntityDataDTO> response = ResponseUtil.successResponse(responseData, "api.entity.create");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            ResponseDTO<EntityDataDTO> errorResponse =
+                    ResponseUtil.errorResponse("api.entity.create", "ENTITY_CREATION_FAILED", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
     }
 
-    // --- API 1: Get full hierarchy from position ---
-    @GetMapping("/position/{positionId}/hierarchy")
-    public ResponseEntity<Map<String, Object>> getFullHierarchy(@PathVariable Integer positionId) {
-        Map<String, Object> hierarchy = entityRelationshipService.getFullHierarchy(positionId);
-        return ResponseEntity.ok(hierarchy);
+
+    @PostMapping("/update")
+    public ResponseEntity<ResponseDTO<EntityDataDTO>> updateEntity(
+            @RequestBody RequestDTO<EntityDataDTO> requestDTO) {
+
+        try {
+            EntityDataDTO dto = requestDTO.getRequest();
+
+            if (dto.getId() == null) {
+                return ResponseEntity.badRequest().body(
+                        ResponseUtil.errorResponse(
+                                "api.entity.update",
+                                "ENTITY_ID_MISSING",
+                                "Entity id is required for update"
+                        )
+                );
+            }
+
+            Entity entity = new ObjectMapper().convertValue(dto, Entity.class);
+
+            Entity updatedEntity = entityRelationshipService.updateEntity(entity);
+
+            EntityDataDTO responseData = new ObjectMapper().convertValue(updatedEntity, EntityDataDTO.class);
+
+            ResponseDTO<EntityDataDTO> response =
+                    ResponseUtil.successResponse(responseData, "api.entity.update");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            ResponseDTO<EntityDataDTO> errorResponse =
+                    ResponseUtil.errorResponse("api.entity.update", "ENTITY_UPDATE_FAILED", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
-    @GetMapping("/listByType")
-    public ResponseEntity<List<Map<String, Object>>> getDetailsByType(@RequestParam String type,@RequestParam Integer typeId) {
-        List<Map<String, Object>> competencies = entityRelationshipService.getDetailsForSpecifiedEntityType(type, typeId);
-        return ResponseEntity.ok(competencies);
+
+    @PostMapping("/hierarchy")
+    public ResponseEntity<ResponseDTO<List<Map<String, Object>>>> getHierarchyByType(
+            @RequestBody RequestDTO<HierarchyRequestDTO> requestDTO) {
+
+        try {
+            HierarchyRequestDTO dto = requestDTO.getRequest();
+
+            if (dto.getType() == null || dto.getCode() == null) {
+                return ResponseEntity.badRequest().body(
+                        ResponseUtil.errorResponse(
+                                "api.entity.hierarchy",
+                                "INVALID_REQUEST",
+                                "Both type and typeId are required"
+                        )
+                );
+            }
+
+            List<Map<String, Object>> hierarchy = entityRelationshipService.getFullHierarchy(dto.getType(), dto.getCode());
+
+            ResponseDTO<List<Map<String, Object>>> response =
+                    ResponseUtil.successResponse(hierarchy, "api.entity.hierarchy");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            ResponseDTO<List<Map<String, Object>>> errorResponse =
+                    ResponseUtil.errorResponse(
+                            "api.entity.hierarchy",
+                            "HIERARCHY_FETCH_FAILED",
+                            e.getMessage()
+                    );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
 
-    @GetMapping("/entities")
-    public ResponseEntity<List<Map<String, Object>>> getEntities(
-            @RequestParam String type,
-            @RequestParam(required = false) String keyword) {
 
-        List<Map<String, Object>> entities = entityRelationshipService.searchEntities(type, keyword);
-        return ResponseEntity.ok(entities);
+    @PostMapping("/search")
+    public ResponseEntity<ResponseDTO<List<Map<String, Object>>>> getEntities(
+            @RequestBody RequestDTO<EntitySearchRequestDTO> requestDTO) {
+
+        try {
+            EntitySearchRequestDTO request = requestDTO.getRequest(); // direct object
+
+            if (request.getType() == null || request.getType().isEmpty()) {
+                throw new IllegalArgumentException("Type cannot be null or empty");
+            }
+
+            List<Map<String, Object>> entities = entityRelationshipService.searchEntities(
+                    request.getType(),
+                    request.getKeyword()
+            );
+
+            ResponseDTO<List<Map<String, Object>>> response =
+                    ResponseUtil.successResponse(entities, "api.entity.search");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            ResponseDTO<List<Map<String, Object>>> errorResponse =
+                    ResponseUtil.errorResponse(
+                            "api.entity.search",
+                            "SEARCH_FAILED",
+                            e.getMessage()
+                    );
+
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
     }
 
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> upload(@RequestParam("file") MultipartFile multipartFile) {
+    public ResponseEntity<ResponseDTO<List<EntityDataDTO>>> upload(@RequestParam("file") MultipartFile multipartFile) {
+
         if (multipartFile == null || multipartFile.isEmpty()) {
-            return ResponseEntity.badRequest().body("File is empty or missing");
+            return ResponseEntity.badRequest().body(
+                    ResponseUtil.errorResponse(
+                            "api.entity.upload",
+                            "FILE_MISSING",
+                            "File is empty or missing"
+                    )
+            );
         }
 
-        try {
-            List<Entity> entities = entityRelationshipService.parseCsv(multipartFile);
+        List<Entity> entities = entityRelationshipService.parseCsv(multipartFile);
+        List<Entity> savedEntities = (List<Entity>) entityRepository.saveAll(entities);
 
-            List<Entity> savedEntities = (List<Entity>) entityRepository.saveAll(entities);
+        List<EntityDataDTO> responseData = savedEntities.stream()
+                .map(entity -> new ObjectMapper().convertValue(entity, EntityDataDTO.class))
+                .collect(Collectors.toList());
 
-            return ResponseEntity.ok(savedEntities);
+        return ResponseEntity.ok(
+                ResponseUtil.successResponse(responseData, "api.entity.upload")
+        );
+    }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
-                    .body("Error while processing file: " + e.getMessage());
+
+    @PostMapping("/mapping")
+    public ResponseEntity<ResponseDTO<List<MappingResultDTO>>> linkEntities(
+            @RequestBody RequestDTO<List<RelationshipRequest>> requests) {
+
+        if (requests == null || requests.getRequest().isEmpty()) {
+            return ResponseEntity.badRequest().body(
+                    ResponseUtil.errorResponse(
+                            "api.entity.mapping",
+                            "INVALID_REQUEST",
+                            "Request list cannot be empty"
+                    )
+            );
         }
+
+        List<MappingResultDTO> resultList = entityRelationshipService.saveGenericRelationshipList(requests.getRequest());
+
+        ResponseDTO<List<MappingResultDTO>> response = ResponseUtil.successResponse(resultList, "api.entity.mapping");
+
+        return ResponseEntity.ok(response);
     }
-
-    @PostMapping("/link-entities")
-    public ResponseEntity<String> linkEntities(@RequestBody RelationshipRequest request) {
-        entityRelationshipService.saveGenericRelationship(request);
-        return ResponseEntity.ok("Relationship saved successfully for type: " + request.getType());
-    }
-
-
 
 }
