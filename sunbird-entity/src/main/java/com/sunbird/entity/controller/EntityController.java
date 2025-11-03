@@ -31,10 +31,10 @@ public class EntityController extends BaseController{
 
     @PostMapping("/create")
     public ResponseEntity<ResponseDTO<EntityDataDTO>> createEntity(
-            @RequestBody RequestDTO<EntityDataDTO> requestDTO) {
+            @RequestBody RequestDTO<FracDTO<EntityDataDTO>> requestDTO) {
 
         try {
-            EntityDataDTO dto = requestDTO.getRequest();
+            EntityDataDTO dto = requestDTO.getRequest().getFrac();
             Entity entity = new ObjectMapper().convertValue(dto, Entity.class);
 
             Entity savedEntity = entityRelationshipService.createEntity(entity);
@@ -54,10 +54,10 @@ public class EntityController extends BaseController{
 
     @PostMapping("/update")
     public ResponseEntity<ResponseDTO<EntityDataDTO>> updateEntity(
-            @RequestBody RequestDTO<EntityDataDTO> requestDTO) {
+            @RequestBody RequestDTO<FracDTO<EntityDataDTO>> requestDTO) {
 
         try {
-            EntityDataDTO dto = requestDTO.getRequest();
+            EntityDataDTO dto = requestDTO.getRequest().getFrac();
 
             if (dto.getId() == null) {
                 return ResponseEntity.badRequest().body(
@@ -90,10 +90,10 @@ public class EntityController extends BaseController{
 
     @PostMapping("/hierarchy")
     public ResponseEntity<ResponseDTO<List<Map<String, Object>>>> getHierarchyByType(
-            @RequestBody RequestDTO<HierarchyRequestDTO> requestDTO) {
+            @RequestBody RequestDTO<FracDTO<HierarchyRequestDTO>> requestDTO) {
 
         try {
-            HierarchyRequestDTO dto = requestDTO.getRequest();
+            HierarchyRequestDTO dto = requestDTO.getRequest().getFrac();
 
             if (dto.getType() == null || dto.getCode() == null) {
                 return ResponseEntity.badRequest().body(
@@ -127,10 +127,10 @@ public class EntityController extends BaseController{
 
     @PostMapping("/search")
     public ResponseEntity<ResponseDTO<List<Map<String, Object>>>> getEntities(
-            @RequestBody RequestDTO<EntitySearchRequestDTO> requestDTO) {
+            @RequestBody RequestDTO<FracDTO<EntitySearchRequestDTO>> requestDTO) {
 
         try {
-            EntitySearchRequestDTO request = requestDTO.getRequest(); // direct object
+            EntitySearchRequestDTO request = requestDTO.getRequest().getFrac(); // direct object
 
             if (request.getType() == null || request.getType().isEmpty()) {
                 throw new IllegalArgumentException("Type cannot be null or empty");
@@ -160,7 +160,7 @@ public class EntityController extends BaseController{
 
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ResponseDTO<List<EntityDataDTO>>> upload(@RequestParam("file") MultipartFile multipartFile) {
+    public ResponseEntity<ResponseDTO<FracDTO<List<EntityDataDTO>>>> upload(@RequestParam("file") MultipartFile multipartFile) {
 
         if (multipartFile == null || multipartFile.isEmpty()) {
             return ResponseEntity.badRequest().body(
@@ -179,17 +179,19 @@ public class EntityController extends BaseController{
                 .map(entity -> new ObjectMapper().convertValue(entity, EntityDataDTO.class))
                 .collect(Collectors.toList());
 
+        FracDTO<List<EntityDataDTO>> fracResponse = new FracDTO<>();
+        fracResponse.setFrac(responseData);
         return ResponseEntity.ok(
-                ResponseUtil.successResponse(responseData, "api.entity.upload")
+                ResponseUtil.successResponse(fracResponse, "api.entity.upload")
         );
     }
 
 
     @PostMapping("/mapping")
     public ResponseEntity<ResponseDTO<List<MappingResultDTO>>> linkEntities(
-            @RequestBody RequestDTO<List<RelationshipRequest>> requests) {
+            @RequestBody RequestDTO<FracDTO<List<RelationshipRequest>>> requests) {
 
-        if (requests == null || requests.getRequest().isEmpty()) {
+        if (requests == null || requests.getRequest().getFrac().isEmpty()) {
             return ResponseEntity.badRequest().body(
                     ResponseUtil.errorResponse(
                             "api.entity.mapping",
@@ -199,7 +201,7 @@ public class EntityController extends BaseController{
             );
         }
 
-        List<MappingResultDTO> resultList = entityRelationshipService.saveGenericRelationshipList(requests.getRequest());
+        List<MappingResultDTO> resultList = entityRelationshipService.saveGenericRelationshipList(requests.getRequest().getFrac());
 
         ResponseDTO<List<MappingResultDTO>> response = ResponseUtil.successResponse(resultList, "api.entity.mapping");
 
