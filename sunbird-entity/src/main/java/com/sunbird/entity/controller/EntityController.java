@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/v1/frac/entity/")
+@RequestMapping("/v1/entity")
 public class EntityController extends BaseController{
 
     @Autowired
