@@ -1,7 +1,6 @@
 package com.sunbird.entity.controller;
 
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sunbird.entity.model.dao.Entity;
 import com.sunbird.entity.model.DTO.*;
@@ -30,43 +29,49 @@ public class EntityController extends BaseController{
     private EntityRelationshipService entityRelationshipService;
 
     @PostMapping("/create")
-    public ResponseEntity<ResponseDTO<EntityDataDTO>> createEntity(
-            @RequestBody RequestDTO<FracDTO<EntityDataDTO>> requestDTO) {
+    public ResponseEntity<ResponseDTO<EntityDTO<EntityDataDTO>>> createEntity(
+            @RequestBody RequestDTO<EntityDTO<EntityDataDTO>> requestDTO) {
 
         try {
-            EntityDataDTO dto = requestDTO.getRequest().getFrac();
+            EntityDataDTO dto = requestDTO.getRequest().getEntity();
             Entity entity = new ObjectMapper().convertValue(dto, Entity.class);
 
             Entity savedEntity = entityRelationshipService.createEntity(entity);
 
             EntityDataDTO responseData = new ObjectMapper().convertValue(savedEntity, EntityDataDTO.class);
 
-            ResponseDTO<EntityDataDTO> response = ResponseUtil.successResponse(responseData, "api.entity.create");
+            EntityDTO<EntityDataDTO> entityDTO = new EntityDTO<>();
+            entityDTO.setEntity(responseData);
+
+            ResponseDTO<EntityDTO<EntityDataDTO>> response =
+                    ResponseUtil.successResponse(entityDTO, "api.entity.create");
+
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            ResponseDTO<EntityDataDTO> errorResponse =
+            ResponseDTO<EntityDTO<EntityDataDTO>> errorResponse =
                     ResponseUtil.errorResponse("api.entity.create", "ENTITY_CREATION_FAILED", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
 
+
     @PostMapping("/update")
-    public ResponseEntity<ResponseDTO<EntityDataDTO>> updateEntity(
-            @RequestBody RequestDTO<FracDTO<EntityDataDTO>> requestDTO) {
+    public ResponseEntity<ResponseDTO<EntityDTO<EntityDataDTO>>> updateEntity(
+            @RequestBody RequestDTO<EntityDTO<EntityDataDTO>> requestDTO) {
 
         try {
-            EntityDataDTO dto = requestDTO.getRequest().getFrac();
+            EntityDataDTO dto = requestDTO.getRequest().getEntity();
 
             if (dto.getId() == null) {
-                return ResponseEntity.badRequest().body(
+                ResponseDTO<EntityDTO<EntityDataDTO>> errorResponse =
                         ResponseUtil.errorResponse(
                                 "api.entity.update",
                                 "ENTITY_ID_MISSING",
                                 "Entity id is required for update"
-                        )
-                );
+                        );
+                return ResponseEntity.badRequest().body(errorResponse);
             }
 
             Entity entity = new ObjectMapper().convertValue(dto, Entity.class);
@@ -75,45 +80,53 @@ public class EntityController extends BaseController{
 
             EntityDataDTO responseData = new ObjectMapper().convertValue(updatedEntity, EntityDataDTO.class);
 
-            ResponseDTO<EntityDataDTO> response =
-                    ResponseUtil.successResponse(responseData, "api.entity.update");
+            EntityDTO<EntityDataDTO> entityDTO = new EntityDTO<>();
+            entityDTO.setEntity(responseData);
+
+            ResponseDTO<EntityDTO<EntityDataDTO>> response =
+                    ResponseUtil.successResponse(entityDTO, "api.entity.update");
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            ResponseDTO<EntityDataDTO> errorResponse =
+            ResponseDTO<EntityDTO<EntityDataDTO>> errorResponse =
                     ResponseUtil.errorResponse("api.entity.update", "ENTITY_UPDATE_FAILED", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
 
+
     @PostMapping("/hierarchy")
-    public ResponseEntity<ResponseDTO<List<Map<String, Object>>>> getHierarchyByType(
-            @RequestBody RequestDTO<FracDTO<HierarchyRequestDTO>> requestDTO) {
+    public ResponseEntity<ResponseDTO<EntityDTO<List<Map<String, Object>>>>> getHierarchyByType(
+            @RequestBody RequestDTO<EntityDTO<HierarchyRequestDTO>> requestDTO) {
 
         try {
-            HierarchyRequestDTO dto = requestDTO.getRequest().getFrac();
+            HierarchyRequestDTO dto = requestDTO.getRequest().getEntity();
 
             if (dto.getType() == null || dto.getCode() == null) {
-                return ResponseEntity.badRequest().body(
+                ResponseDTO<EntityDTO<List<Map<String, Object>>>> errorResponse =
                         ResponseUtil.errorResponse(
                                 "api.entity.hierarchy",
                                 "INVALID_REQUEST",
-                                "Both type and typeId are required"
-                        )
-                );
+                                "Both type and code are required"
+                        );
+                return ResponseEntity.badRequest().body(errorResponse);
             }
 
-            List<Map<String, Object>> hierarchy = entityRelationshipService.getFullHierarchy(dto.getType(), dto.getCode());
+            List<Map<String, Object>> hierarchy =
+                    entityRelationshipService.getFullHierarchy(dto.getType(), dto.getCode());
 
-            ResponseDTO<List<Map<String, Object>>> response =
-                    ResponseUtil.successResponse(hierarchy, "api.entity.hierarchy");
+            EntityDTO<List<Map<String, Object>>> entityDTO = new EntityDTO<>();
+            entityDTO.setEntity(hierarchy);
+
+            ResponseDTO<EntityDTO<List<Map<String, Object>>>> response =
+                    ResponseUtil.successResponse(entityDTO, "api.entity.hierarchy");
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            ResponseDTO<List<Map<String, Object>>> errorResponse =
+            ResponseDTO<EntityDTO<List<Map<String, Object>>>> errorResponse =
                     ResponseUtil.errorResponse(
                             "api.entity.hierarchy",
                             "HIERARCHY_FETCH_FAILED",
@@ -126,11 +139,11 @@ public class EntityController extends BaseController{
 
 
     @PostMapping("/search")
-    public ResponseEntity<ResponseDTO<List<Map<String, Object>>>> getEntities(
-            @RequestBody RequestDTO<FracDTO<EntitySearchRequestDTO>> requestDTO) {
+    public ResponseEntity<ResponseDTO<EntityDTO<List<Map<String, Object>>>>> getEntities(
+            @RequestBody RequestDTO<EntityDTO<EntitySearchRequestDTO>> requestDTO) {
 
         try {
-            EntitySearchRequestDTO request = requestDTO.getRequest().getFrac(); // direct object
+            EntitySearchRequestDTO request = requestDTO.getRequest().getEntity(); // direct object
 
             if (request.getType() == null || request.getType().isEmpty()) {
                 throw new IllegalArgumentException("Type cannot be null or empty");
@@ -138,29 +151,39 @@ public class EntityController extends BaseController{
 
             List<Map<String, Object>> entities = entityRelationshipService.searchEntities(
                     request.getType(),
-                    request.getKeyword()
+                    request.getQuery(),
+                    request.getLimit()
             );
 
-            ResponseDTO<List<Map<String, Object>>> response =
-                    ResponseUtil.successResponse(entities, "api.entity.search");
+            EntityDTO<List<Map<String, Object>>> entityDTO = new EntityDTO<>();
+            entityDTO.setEntity(entities);
+
+            ResponseDTO.Result<EntityDTO<List<Map<String, Object>>>> result = new ResponseDTO.Result<>();
+            result.setData(entityDTO);
+            result.setCount(entities != null ? entities.size() : 0);
+
+            ResponseDTO<EntityDTO<List<Map<String, Object>>>> response = new ResponseDTO<>();
+            response.setResult(result);
+
+            ResponseUtil.successResponse(response, "api.entity.search");
 
             return ResponseEntity.ok(response);
 
+
         } catch (Exception e) {
-            ResponseDTO<List<Map<String, Object>>> errorResponse =
+            ResponseDTO<EntityDTO<List<Map<String, Object>>>> errorResponse =
                     ResponseUtil.errorResponse(
                             "api.entity.search",
                             "SEARCH_FAILED",
                             e.getMessage()
                     );
-
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
 
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ResponseDTO<FracDTO<List<EntityDataDTO>>>> upload(@RequestParam("file") MultipartFile multipartFile) {
+    public ResponseEntity<ResponseDTO<EntityDTO<List<EntityDataDTO>>>> upload(@RequestParam("file") MultipartFile multipartFile) {
 
         if (multipartFile == null || multipartFile.isEmpty()) {
             return ResponseEntity.badRequest().body(
@@ -179,19 +202,26 @@ public class EntityController extends BaseController{
                 .map(entity -> new ObjectMapper().convertValue(entity, EntityDataDTO.class))
                 .collect(Collectors.toList());
 
-        FracDTO<List<EntityDataDTO>> fracResponse = new FracDTO<>();
-        fracResponse.setFrac(responseData);
-        return ResponseEntity.ok(
-                ResponseUtil.successResponse(fracResponse, "api.entity.upload")
-        );
+        EntityDTO<List<EntityDataDTO>> entityResponse = new EntityDTO<>();
+        entityResponse.setEntity(responseData);
+
+        ResponseDTO<EntityDTO<List<EntityDataDTO>>> response =
+                ResponseUtil.successResponse(entityResponse, "api.entity.upload");
+
+        if (response.getResult() != null && response.getResult().getData() != null) {
+            response.getResult().setCount(responseData.size());
+        }
+
+        return ResponseEntity.ok(response);
+
     }
 
 
     @PostMapping("/mapping")
-    public ResponseEntity<ResponseDTO<List<MappingResultDTO>>> linkEntities(
-            @RequestBody RequestDTO<FracDTO<List<RelationshipRequest>>> requests) {
+    public ResponseEntity<ResponseDTO<EntityDTO<List<MappingResultDTO>>>> linkEntities(
+            @RequestBody RequestDTO<EntityDTO<List<RelationshipRequest>>> requests) {
 
-        if (requests == null || requests.getRequest().getFrac().isEmpty()) {
+        if (requests == null || requests.getRequest().getEntity().isEmpty()) {
             return ResponseEntity.badRequest().body(
                     ResponseUtil.errorResponse(
                             "api.entity.mapping",
@@ -201,9 +231,13 @@ public class EntityController extends BaseController{
             );
         }
 
-        List<MappingResultDTO> resultList = entityRelationshipService.saveGenericRelationshipList(requests.getRequest().getFrac());
+        List<MappingResultDTO> resultList = entityRelationshipService.saveGenericRelationshipList(requests.getRequest().getEntity());
 
-        ResponseDTO<List<MappingResultDTO>> response = ResponseUtil.successResponse(resultList, "api.entity.mapping");
+        EntityDTO<List<MappingResultDTO>> entityDTO = new EntityDTO<>();
+        entityDTO.setEntity(resultList);
+
+        ResponseDTO<EntityDTO<List<MappingResultDTO>>> response =
+                ResponseUtil.successResponse(entityDTO, "api.entity.mapping");
 
         return ResponseEntity.ok(response);
     }

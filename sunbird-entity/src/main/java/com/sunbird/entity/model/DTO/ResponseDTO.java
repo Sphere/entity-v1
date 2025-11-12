@@ -30,6 +30,7 @@ public class ResponseDTO<T> {
     @Getter
     @Setter
     public static class Result<T> {
+        private Integer count;
         private T data; // This will hold the actual response payload for each API
     }
 }

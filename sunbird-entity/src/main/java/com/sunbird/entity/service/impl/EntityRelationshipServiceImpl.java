@@ -521,42 +521,71 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
     }
 
     @Override
-    public List<Map<String, Object>> searchEntities(String type, String keyword) {
+    public List<Map<String, Object>> searchEntities(String type, String query, int limit) {
 
-        // 1️⃣ Fetch all parents by type
-        List<Entity> parents = entityESRepository.findByType(type);
+        List<Entity> entities = entityESRepository.findByType(type);
 
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            String lowerKeyword = keyword.toLowerCase();
+        // Parse and filter query
+        if (query != null && !query.isEmpty()) {
+            String[] parts = query.split("\\.");
+            String column = parts[0];
+            String key = parts.length == 3 ? parts[1] : null; // JSON key
+            String value = parts.length == 3 ? parts[2] : parts.length == 2 ? parts[1] : null;
 
-            parents = parents.stream()
-                    .filter(p -> {
-                        boolean matches = false;
+            final String finalKey = key;
+            final String finalValue = value != null ? value.toLowerCase() : null;
 
-                        // Check name, description, code
-                        if (p.getName() != null && p.getName().toLowerCase().contains(lowerKeyword)) matches = true;
-                        else if (p.getDescription() != null && p.getDescription().toLowerCase().contains(lowerKeyword)) matches = true;
-                        else if (p.getCode() != null && p.getCode().toLowerCase().contains(lowerKeyword)) matches = true;
+            if (finalValue != null) {
+                entities = entities.stream()
+                        .filter(entity -> {
+                            if ("name".equalsIgnoreCase(column)) {
+                                return entity.getName() != null &&
+                                        entity.getName().toLowerCase().contains(finalValue);
+                            } else if ("code".equalsIgnoreCase(column)) {
+                                return entity.getCode() != null &&
+                                        entity.getCode().toLowerCase().contains(finalValue);
+                            } else if ("description".equalsIgnoreCase(column)) {
+                                return entity.getDescription() != null &&
+                                        entity.getDescription().toLowerCase().contains(finalValue);
+                            } else { // JSON/map column
+                                if (entity.getAdditionalProperties() != null) {
+                                    Object mapObj = entity.getAdditionalProperties().get(column);
+                                    Map<String, Object> map = null;
 
-                        // Check additionalProperties values
-                        if (!matches && p.getAdditionalProperties() != null) {
-                            matches = p.getAdditionalProperties().values().stream()
-                                    .anyMatch(val -> val != null && val.toString().toLowerCase().contains(lowerKeyword));
-                        }
+                                    if (mapObj instanceof Map) {
+                                        map = (Map<String, Object>) mapObj;
+                                    } else if (mapObj instanceof String) {
+                                        try {
+                                            map = new ObjectMapper().readValue(
+                                                    (String) mapObj, new TypeReference<Map<String, Object>>() {});
+                                        } catch (Exception ignored) {}
+                                    }
 
-                        return matches;
-                    })
-                    .collect(Collectors.toList());
+                                    if (map != null) {
+                                        Object val = finalKey != null ? map.get(finalKey) : map;
+                                        return val != null && val.toString().equalsIgnoreCase(finalValue);
+                                    }
+                                }
+                                return false;
+                            }
+                        })
+                        .collect(Collectors.toList());
+            }
         }
 
-        // 2️⃣ Filter for default active
-        parents = parents.stream()
-                .filter(p -> "Active".equalsIgnoreCase(p.getStatus()))
+        // Active filter
+        entities = entities.stream()
+                .filter(e -> "Active".equalsIgnoreCase(e.getStatus()))
                 .collect(Collectors.toList());
 
-        List<Map<String, Object>> result = new ArrayList<>();
+        // Apply limit
+        if (limit > 0 && entities.size() > limit) {
+            entities = new ArrayList<>(entities.subList(0, limit));
+        }
 
-        for (Entity parent : parents) {
+        // Map entities to List<Map> and attach competency children
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Entity parent : entities) {
             Map<String, Object> parentMap = entityToMap(parent);
 
             if ("competency".equalsIgnoreCase(parent.getType())) {
@@ -581,8 +610,5 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
 
         return result;
     }
-
-
-
 
 }

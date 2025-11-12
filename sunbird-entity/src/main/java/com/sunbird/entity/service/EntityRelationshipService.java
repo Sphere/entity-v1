@@ -13,11 +13,11 @@ public interface EntityRelationshipService {
 
     Entity createEntity(Entity entity);
 
-    List<Map<String, Object>> searchEntities(String type, String keyword);
-
     List<MappingResultDTO> saveGenericRelationshipList(List<RelationshipRequest> requests);
 
     Entity updateEntity(Entity entity);
 
     List<Map<String, Object>> getFullHierarchy(String type, String parentCode);
+
+    List<Map<String, Object>> searchEntities(String type, String query, int limit);
 }

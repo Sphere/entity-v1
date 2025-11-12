@@ -7,5 +7,6 @@ import lombok.Setter;
 @Setter
 public class EntitySearchRequestDTO {
     private String type;
-    private String keyword; // optional
+    private String query; // optional
+    private Integer limit;
 }

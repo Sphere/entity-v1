@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class FracDTO<T> {
-    private T frac;
+public class EntityDTO<T> {
+    private T entity;
 }
 
