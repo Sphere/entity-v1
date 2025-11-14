@@ -48,7 +48,7 @@ public class EntityApplication {
 						.allowedOriginPatterns("*")
 						.allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
 						.allowedHeaders("*")
-						.allowCredentials(false);
+						.allowCredentials(true);
 			}
 
 			@Autowired
@@ -65,7 +65,7 @@ public class EntityApplication {
 	public FilterRegistrationBean corsFilter() {
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		CorsConfiguration config = new CorsConfiguration();
-		config.setAllowCredentials(false);
+		config.setAllowCredentials(true);
 		config.addAllowedOriginPattern("*");
 		config.addAllowedHeader("*");
 		config.addAllowedMethod("*");
