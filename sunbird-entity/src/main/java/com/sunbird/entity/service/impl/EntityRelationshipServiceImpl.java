@@ -22,6 +22,7 @@ import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
 @Service
 public class EntityRelationshipServiceImpl implements EntityRelationshipService {
@@ -104,7 +105,8 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
                 Map<String, Object> props = new HashMap<>();
                 if (record.isMapped("additional_properties") && !record.get("additional_properties").isBlank()) {
                     ObjectMapper mapper = new ObjectMapper();
-                    props.putAll(mapper.readValue(record.get("additional_properties"), new TypeReference<Map<String, Object>>() {}));
+                    props.putAll(mapper.readValue(record.get("additional_properties"), new TypeReference<Map<String, Object>>() {
+                    }));
                 }
                 entity.setAdditionalProperties(props);
 
@@ -202,7 +204,6 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
     }
 
 
-
     @Override
     public Entity createEntity(Entity entity) {
         entity.setStatus("Active");
@@ -223,7 +224,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
                 childEntity.setType("level"); // fixed for children
 
                 // Generate additional fields
-                childEntity.setLevel("L" + levelCounter + "_"+ savedEntity.getCode());
+                childEntity.setLevel("L" + levelCounter + "_" + savedEntity.getCode());
                 childEntity.setLevelId(levelCounter);
                 childEntity.setStatus("Active");
                 childEntity.setSource("child_of_" + savedEntity.getCode());
@@ -244,7 +245,6 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
                 levelIds.add(String.valueOf(savedChild.getCode()));
                 levelCounter++;
             }
-
 
 
             String id = "COMPETENCY_LEVEL" + ":" + savedEntity.getCode();
@@ -302,7 +302,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
             throw new IllegalArgumentException("Entity id cannot be null for update");
         }
 
-        // Fetch existing entity from DB
+        // 1️⃣ Fetch existing entity from DB
         Optional<Entity> existingOpt = entityRepository.findById(incoming.getId());
         if (existingOpt.isEmpty()) {
             throw new NoSuchElementException("Entity not found with id: " + incoming.getId());
@@ -310,7 +310,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
 
         Entity existing = existingOpt.get();
 
-        // Update only provided fields
+        // 2️⃣ Update only provided fields
         if (incoming.getType() != null) existing.setType(incoming.getType());
         if (incoming.getName() != null) existing.setName(incoming.getName());
         if (incoming.getDescription() != null) existing.setDescription(incoming.getDescription());
@@ -319,7 +319,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
         if (incoming.getStatus() != null) existing.setStatus(incoming.getStatus());
         if (incoming.getSource() != null) existing.setSource(incoming.getSource());
         if (incoming.getLevel() != null) existing.setLevel(incoming.getLevel());
-        existing.setLevelId(incoming.getLevelId()); // levelId is primitive, always update
+        existing.setLevelId(incoming.getLevelId()); // primitive, always update
         if (incoming.getCode() != null) existing.setCode(incoming.getCode());
         if (incoming.getTranslation() != null) existing.setTranslation(incoming.getTranslation());
         if (incoming.getCreatedBy() != null) existing.setCreatedBy(incoming.getCreatedBy());
@@ -329,7 +329,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
         if (incoming.getReviewedBy() != null) existing.setReviewedBy(incoming.getReviewedBy());
         if (incoming.getReviewedDate() != null) existing.setReviewedDate(incoming.getReviewedDate());
 
-        // Merge children if provided
+        // 3️⃣ Merge children if provided
         if (incoming.getChildren() != null && !incoming.getChildren().isEmpty()) {
             List<Map<String, Object>> mergedChildren = new ArrayList<>();
             if (existing.getChildren() != null) {
@@ -343,9 +343,20 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
             existing.setChildren(distinctChildren);
         }
 
-        // Save updated entity
-        return entityRepository.save(existing);
+        // 4️⃣ Save updated entity in Postgres
+        Entity savedEntity = entityRepository.save(existing);
+
+        // 5️⃣ Update entity in Elasticsearch
+        try {
+            entityESRepository.save(savedEntity);
+        } catch (Exception e) {
+            // Optional: log error, do not fail Postgres save
+            e.printStackTrace();
+        }
+
+        return savedEntity;
     }
+
 
     @Override
     public List<Map<String, Object>> getFullHierarchy(String type, String parentCode) {
@@ -521,94 +532,86 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
     }
 
     @Override
-    public List<Map<String, Object>> searchEntities(String type, String query, int limit) {
+    public List<Map<String, Object>> searchEntities(String type, Map<String, String> query, int limit) {
 
+        // 1️⃣ Fetch all entities of the requested type from ES
         List<Entity> entities = entityESRepository.findByType(type);
 
-        // Parse and filter query
+        // 2️⃣ Apply query filters if provided
         if (query != null && !query.isEmpty()) {
-            String[] parts = query.split("\\.");
-            String column = parts[0];
-            String key = parts.length == 3 ? parts[1] : null; // JSON key
-            String value = parts.length == 3 ? parts[2] : parts.length == 2 ? parts[1] : null;
-
-            final String finalKey = key;
-            final String finalValue = value != null ? value.toLowerCase() : null;
-
-            if (finalValue != null) {
-                entities = entities.stream()
-                        .filter(entity -> {
-                            if ("name".equalsIgnoreCase(column)) {
-                                return entity.getName() != null &&
-                                        entity.getName().toLowerCase().contains(finalValue);
-                            } else if ("code".equalsIgnoreCase(column)) {
-                                return entity.getCode() != null &&
-                                        entity.getCode().toLowerCase().contains(finalValue);
-                            } else if ("description".equalsIgnoreCase(column)) {
-                                return entity.getDescription() != null &&
-                                        entity.getDescription().toLowerCase().contains(finalValue);
-                            } else { // JSON/map column
-                                if (entity.getAdditionalProperties() != null) {
-                                    Object mapObj = entity.getAdditionalProperties().get(column);
-                                    Map<String, Object> map = null;
-
-                                    if (mapObj instanceof Map) {
-                                        map = (Map<String, Object>) mapObj;
-                                    } else if (mapObj instanceof String) {
-                                        try {
-                                            map = new ObjectMapper().readValue(
-                                                    (String) mapObj, new TypeReference<Map<String, Object>>() {});
-                                        } catch (Exception ignored) {}
-                                    }
-
-                                    if (map != null) {
-                                        Object val = finalKey != null ? map.get(finalKey) : map;
-                                        return val != null && val.toString().equalsIgnoreCase(finalValue);
-                                    }
-                                }
-                                return false;
-                            }
-                        })
-                        .collect(Collectors.toList());
-            }
+            entities = entities.stream()
+                    .filter(entity -> matchesQuery(entity, query))
+                    .collect(Collectors.toList());
         }
 
-        // Active filter
+        // 3️⃣ Filter Active entities (null treated as Active)
         entities = entities.stream()
-                .filter(e -> "Active".equalsIgnoreCase(e.getStatus()))
+                .filter(e -> e.getStatus() == null || e.getStatus().trim().equalsIgnoreCase("Active"))
                 .collect(Collectors.toList());
 
-        // Apply limit
+        // 4️⃣ Apply limit
         if (limit > 0 && entities.size() > limit) {
-            entities = new ArrayList<>(entities.subList(0, limit));
+            entities = entities.subList(0, limit);
         }
 
-        // Map entities to List<Map> and attach competency children
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Entity parent : entities) {
-            Map<String, Object> parentMap = entityToMap(parent);
+        // 5️⃣ Map entities and attach children for competency
+        return entities.stream()
+                .map(entity -> {
+                    Map<String, Object> resultMap = entityToMap(entity);
 
-            if ("competency".equalsIgnoreCase(parent.getType())) {
-                String competencyCode = parent.getCode();
+                    if ("competency".equalsIgnoreCase(entity.getType())) {
+                        List<Entity> children = entityESRepository.findByType("level").stream()
+                                .filter(level -> level.getLevel() != null &&
+                                        level.getLevel().endsWith("_" + entity.getCode()))
+                                .filter(level -> level.getStatus() == null ||
+                                        level.getStatus().trim().equalsIgnoreCase("Active"))
+                                .collect(Collectors.toList());
 
-                List<Entity> levels = entityESRepository.findByType("level").stream()
-                        .filter(level -> level.getLevel() != null &&
-                                level.getLevel().endsWith("_" + competencyCode))
-                        .filter(level -> "Active".equalsIgnoreCase(level.getStatus()))
-                        .collect(Collectors.toList());
+                        if (!children.isEmpty()) {
+                            resultMap.put("children",
+                                    children.stream().map(this::entityToMap).collect(Collectors.toList()));
+                        }
+                    }
 
-                if (!levels.isEmpty()) {
-                    List<Map<String, Object>> children = levels.stream()
-                            .map(this::entityToMap)
-                            .collect(Collectors.toList());
-                    parentMap.put("children", children);
+                    return resultMap;
+                })
+                .collect(Collectors.toList());
+    }
+
+    private boolean matchesQuery(Entity entity, Map<String, String> query) {
+        return query.entrySet().stream().allMatch(entry -> {
+            String field = entry.getKey();
+            String expectedValue = entry.getValue();
+            if (expectedValue == null) return true;
+            expectedValue = expectedValue.trim();
+
+            Object actualValue = null;
+
+            // 1️⃣ Check if the query key is in additionalProperties
+            if (field.startsWith("additionalProperties.")) {
+                String key = field.substring("additionalProperties.".length());
+                if (entity.getAdditionalProperties() != null) {
+                    actualValue = entity.getAdditionalProperties().entrySet().stream()
+                            .filter(e -> e.getKey().equalsIgnoreCase(key))
+                            .map(Map.Entry::getValue)
+                            .findFirst()
+                            .orElse(null);
+                }
+            } else {
+                // 2️⃣ Otherwise, direct entity fields
+                switch (field.toLowerCase()) {
+                    case "name": actualValue = entity.getName(); break;
+                    case "code": actualValue = entity.getCode(); break;
+                    case "description": actualValue = entity.getDescription(); break;
+                    case "type": actualValue = entity.getType(); break;
                 }
             }
 
-            result.add(parentMap);
-        }
+            if (actualValue == null) return false;
 
-        return result;
+            // 3️⃣ Exact match, case-insensitive
+            return actualValue.toString().trim().equalsIgnoreCase(expectedValue);
+        });
     }
 
 }

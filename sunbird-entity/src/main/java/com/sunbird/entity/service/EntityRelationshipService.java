@@ -19,5 +19,5 @@ public interface EntityRelationshipService {
 
     List<Map<String, Object>> getFullHierarchy(String type, String parentCode);
 
-    List<Map<String, Object>> searchEntities(String type, String query, int limit);
+    List<Map<String, Object>> searchEntities(String type, Map<String, String> query, int limit);
 }
