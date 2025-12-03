@@ -1,44 +1,35 @@
 package com.sunbird.entity.config;
 
+import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.transport.client.PreBuiltTransportClient;
-import org.jboss.resteasy.client.jaxrs.internal.ClientConfiguration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
-
-import java.net.InetAddress;
+import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
 
 @Configuration
 public class ElasticsearchConfig {
 
-    @Value("${elasticsearch.clustername}")
-    private String clusterName;
-
     @Value("${elasticsearch.host}")
     private String host;
 
-    @Value("${elasticsearch.port}")
+    @Value("${elasticsearch.rest.port:9200}")
     private int port;
 
     @Bean
-    public TransportClient client() throws Exception {
-        Settings settings = Settings.builder()
-                .put("cluster.name", clusterName)
-                .build();
+    public RestHighLevelClient client() {
+        return new RestHighLevelClient(
+            RestClient.builder(
+                new HttpHost(host, port, "http")
+            )
+        );
 
-        return new PreBuiltTransportClient(settings)
-                .addTransportAddress(new TransportAddress(InetAddress.getByName(host), port));
     }
 
-    @Bean
-    public ElasticsearchTemplate elasticsearchTemplate() throws Exception {
-        return new ElasticsearchTemplate(client());
+    @Bean(name = {"elasticsearchRestTemplate", "elasticsearchTemplate"})
+    public ElasticsearchRestTemplate elasticsearchRestTemplate() {
+        return new ElasticsearchRestTemplate(client());
     }
 }
 

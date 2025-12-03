@@ -1,0 +1,43 @@
+{
+  "properties": {
+    "id": { "type": "integer" },
+    "type": { "type": "keyword" },
+    "name": {
+      "type": "text",
+      "analyzer": "english",
+      "fields": {
+        "keyword": { "type": "keyword" }
+      }
+    },
+    "description": { "type": "text", "analyzer": "english" },
+    "additionalProperties": {
+      "type": "flattened"
+    },
+    "status": { "type": "keyword" },
+    "source": { "type": "keyword" },
+    "level": { "type": "keyword" },
+    "levelId": { "type": "integer" },
+    "createdDate": {
+      "type": "date",
+      "format": "yyyy-MM-dd HH:mm:ss.SSS||strict_date_optional_time||epoch_millis"
+    },
+    "createdBy": { "type": "keyword" },
+    "updatedDate": {
+      "type": "date",
+      "format": "yyyy-MM-dd HH:mm:ss.SSS||strict_date_optional_time||epoch_millis"
+    },
+    "updatedBy": { "type": "keyword" },
+    "reviewedDate": {
+      "type": "date",
+      "format": "yyyy-MM-dd HH:mm:ss.SSS||strict_date_optional_time||epoch_millis"
+    },
+    "reviewedBy": { "type": "keyword" },
+    "translation": {
+      "type": "object",
+      "enabled": true
+    },
+    "code": { "type": "keyword" },
+
+    "language": { "type": "keyword" }
+  }
+}

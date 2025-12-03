@@ -2,9 +2,11 @@ package com.sunbird.entity.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sunbird.entity.mapper.es.EntityMapper;
 import com.sunbird.entity.model.*;
 import com.sunbird.entity.model.dao.Entity;
 import com.sunbird.entity.model.DTO.*;
+import com.sunbird.entity.model.es.EntityDocument;
 import com.sunbird.entity.repository.elasticsearch.*;
 import com.sunbird.entity.repository.jpa.EntitiesRepository;
 import com.sunbird.entity.repository.elasticsearch.EntityESRepository;
@@ -13,7 +15,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,16 +31,22 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
 
 
     @Autowired
-    private ElasticsearchTemplate esTemplate;
+    private ElasticsearchRestTemplate esTemplate;
 
     @Autowired
     private EntitiesRepository entityRepository;
 
-    @Autowired
-    private EntityESRepository entityESRepository;
+//    @Autowired
+//    private EntityESRepository entityESRepository;
 
     @Autowired
     private EntityRelationshipRepository entityRelationshipRepository;
+
+    @Autowired
+    private EntityMapper entityMapper;
+
+    @Autowired
+    private EntityDocumentESRepository entityDocumentESRepository;
 
 
     private Map<String, Object> entityToMap(Entity entity) {
@@ -74,6 +82,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
                 String type = record.get("type");
                 String name = record.get("name");
                 String description = record.get("description");
+                String language = record.get("language");
 
                 String generatedCode = record.isMapped("code") && !record.get("code").isBlank()
                         ? record.get("code")
@@ -83,6 +92,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
                 entity.setType(type);
                 entity.setName(name);
                 entity.setDescription(description);
+                entity.setLanguage(language);
                 entity.setCode(generatedCode);
                 entity.setStatus("Active");
                 entity.setLevel(generatedCode);
@@ -113,6 +123,8 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
                 if ("competency".equalsIgnoreCase(type)) {
                     // Save parent competency first
                     Entity savedEntity = entityRepository.save(entity);
+                    EntityDocument entityDocument = entityMapper.toDocument(savedEntity);
+                    entityDocumentESRepository.save(entityDocument);
 
                     List<Map<String, Object>> children = new ArrayList<>();
                     List<String> levelIds = new ArrayList<>();
@@ -122,11 +134,14 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
                     for (int i = 1; i <= 5; i++) {
                         String levelNameCol = "Competency Level " + i + " Label";
                         String levelDescCol = "Competency Level " + i + " Description";
+                        String levelLanguageCol = "Competency Level " + i + " Language";
+
                         if (record.isMapped(levelNameCol) && !record.get(levelNameCol).isBlank()) {
                             Entity levelEntity = new Entity();
                             levelEntity.setType("level");
                             levelEntity.setName(record.get(levelNameCol));
                             levelEntity.setDescription(record.get(levelDescCol));
+                            levelEntity.setLanguage(record.get(levelLanguageCol));
                             levelEntity.setStatus("Active");
                             levelEntity.setLevel("L" + levelCounter);
                             levelEntity.setLevelId(levelCounter);
@@ -137,6 +152,9 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
                             levelEntity.setAdditionalProperties(levelProps);
 
                             Entity savedLevel = entityRepository.save(levelEntity);
+                            EntityDocument entityLevelDocument = entityMapper.toDocument(savedLevel);
+                            entityDocumentESRepository.save(entityLevelDocument);
+
                             levelIds.add(String.valueOf(savedLevel.getCode()));
                             levelCounter++;
 
@@ -146,6 +164,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
                             childMap.put("type", savedLevel.getType());
                             childMap.put("name", savedLevel.getName());
                             childMap.put("description", savedLevel.getDescription());
+                            childMap.put("language", savedLevel.getLanguage());
                             childMap.put("level", savedLevel.getLevel());
                             childMap.put("levelId", savedLevel.getLevelId());
                             childMap.put("code", savedLevel.getCode());
@@ -192,7 +211,11 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
                     entity.setLevelId(0);
                     entity.setStatus("Active");
 
-                    entityRepository.save(entity);
+                    Entity savedEntity = entityRepository.save(entity);
+                    EntityDocument entityDocument = entityMapper.toDocument(savedEntity);
+//                    EntityDocument entityDocument = EntityMapper.INSTANCE.toDocument(entity);
+                    entityDocumentESRepository.save(entityDocument);
+
                     entities.add(entity);
                 }
             }
@@ -208,7 +231,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
     public Entity createEntity(Entity entity) {
         entity.setStatus("Active");
         Entity savedEntity = entityRepository.save(entity);
-        entityESRepository.save(savedEntity);
+//        entityESRepository.save(savedEntity); TODO: Need to saved in ES for single entity create
 
         if ("competency".equalsIgnoreCase(entity.getType()) && entity.getChildren() != null && !entity.getChildren().isEmpty()) {
 
@@ -241,7 +264,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
                 childEntity.setAdditionalProperties(props);
 
                 Entity savedChild = entityRepository.save(childEntity);
-                entityESRepository.save(savedChild);
+//                entityESRepository.save(savedChild); TODO: save in ES pending
                 levelIds.add(String.valueOf(savedChild.getCode()));
                 levelCounter++;
             }
@@ -346,13 +369,14 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
         // 4️⃣ Save updated entity in Postgres
         Entity savedEntity = entityRepository.save(existing);
 
-        // 5️⃣ Update entity in Elasticsearch
-        try {
-            entityESRepository.save(savedEntity);
-        } catch (Exception e) {
-            // Optional: log error, do not fail Postgres save
-            e.printStackTrace();
-        }
+//        TODO: update in ES pending
+//        // 5️⃣ Update entity in Elasticsearch
+//        try {
+//            entityESRepository.save(savedEntity);
+//        } catch (Exception e) {
+//            // Optional: log error, do not fail Postgres save
+//            e.printStackTrace();
+//        }
 
         return savedEntity;
     }
@@ -361,6 +385,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
     @Override
     public List<Map<String, Object>> getFullHierarchy(String type, String parentCode) {
 
+       /*  TODO: get hirary from ES or Postgres need to analyze
         // 1️⃣ Fetch root entity by code
         Entity root = entityESRepository.findByCode(parentCode)
                 .orElseThrow(() -> new NoSuchElementException("Entity not found with code: " + parentCode));
@@ -375,7 +400,8 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
         // 3️⃣ Recursively attach children
         attachChildrenFromRelationship(rootMap, root);
 
-        return List.of(rootMap);
+        return List.of(rootMap);*/
+        return Collections.emptyList();
     }
 
     /**
@@ -383,7 +409,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
      * Handles activity→competency→level mapping and stops cleanly at levels.
      */
     private void attachChildrenFromRelationship(Map<String, Object> parentMap, Entity parent) {
-
+        /*TODO: Need to analyze
         String parentCode = parent.getCode();
         String parentType = parent.getType();
 
@@ -472,7 +498,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
         // 4️⃣ Final step — attach list to parent map
         if (!childrenList.isEmpty()) {
             parentMap.put("children", childrenList);
-        }
+        }*/
     }
 
 
@@ -534,7 +560,7 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
     @Override
     public List<Map<String, Object>> searchEntities(String type, Map<String, String> query, int limit) {
 
-        // 1️⃣ Fetch all entities of the requested type from ES
+        /*// 1️⃣ Fetch all entities of the requested type from ES TODO: Need to analyze - whats the expectation and reason
         List<Entity> entities = entityESRepository.findByType(type);
 
         // 2️⃣ Apply query filters if provided
@@ -575,7 +601,8 @@ public class EntityRelationshipServiceImpl implements EntityRelationshipService 
 
                     return resultMap;
                 })
-                .collect(Collectors.toList());
+                .collect(Collectors.toList());*/
+        return Collections.emptyList();
     }
 
     private boolean matchesQuery(Entity entity, Map<String, String> query) {

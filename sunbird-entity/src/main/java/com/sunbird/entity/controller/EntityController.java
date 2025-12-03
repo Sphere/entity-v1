@@ -4,8 +4,10 @@ package com.sunbird.entity.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sunbird.entity.model.dao.Entity;
 import com.sunbird.entity.model.DTO.*;
+import com.sunbird.entity.model.es.EntityDocument;
 import com.sunbird.entity.repository.jpa.EntitiesRepository;
 import com.sunbird.entity.service.EntityRelationshipService;
+import com.sunbird.entity.service.EntitySearchService;
 import com.sunbird.entity.util.ResponseUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,6 +29,9 @@ public class EntityController extends BaseController{
 
     @Autowired
     private EntityRelationshipService entityRelationshipService;
+
+    @Autowired
+    private EntitySearchService entitySearchService;
 
     @PostMapping("/create")
     public ResponseEntity<ResponseDTO<EntityDTO<EntityDataDTO>>> createEntity(
@@ -136,6 +141,35 @@ public class EntityController extends BaseController{
         }
     }
 
+//    TODO: parameter check and validation
+    @PostMapping("/search/generic")
+    public ResponseEntity<ResponseDTO<List<EntityResponseDTO>>> search(
+            @RequestBody RequestDTO<EntitySearchRequestDTO> requestDTO) {
+        try {
+
+            List<EntityResponseDTO> entityResponseDTOList = entitySearchService.findEntityWithGenericAttributeValue(
+                    requestDTO.getRequest());
+
+            ResponseDTO.Result<List<EntityResponseDTO>> result = new ResponseDTO.Result<>();
+            result.setData(entityResponseDTOList);
+            result.setCount(entityResponseDTOList != null ? entityResponseDTOList.size() : 0);
+
+            ResponseDTO<List<EntityResponseDTO>> response = new ResponseDTO<>();
+            response.setResult(result);
+
+            ResponseUtil.successResponse(response, "api.entity.search.generic");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            ResponseDTO<List<EntityResponseDTO>> errorResponse =
+                    ResponseUtil.errorResponse(
+                            "api.entity.search.generic",
+                            "SEARCH_FAILED",
+                            e.getMessage()
+                    );
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
 
 
     @PostMapping("/search")

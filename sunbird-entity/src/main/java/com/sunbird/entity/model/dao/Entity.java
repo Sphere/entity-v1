@@ -21,33 +21,33 @@ import java.util.Map;
 @javax.persistence.Entity(name = "EntityDao")
 @DynamicUpdate
 @TypeDefs({ @TypeDef(name = "json", typeClass = JsonType.class) })
-@Document(indexName = "entities",type = "doc")
+//@Document(indexName = "entities",type = "doc") TODO: Entity should not used for multipurpose - eradicating for ES use - Need to refactor
 public class Entity implements Cloneable {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Integer id;
 
-	@Column
+	@Column(length = 100)
 	private String type;
 
-	@Column
+	@Column(length = 500)
 	private String name;
 
-	@Column
+	@Column(length = 2000)
 	private String description;
 
 	@Type(type = "json")
 	@Column(name = "additional_properties", columnDefinition = "json")
 	private Map<String, Object> additionalProperties;
 
-	@Column
+	@Column(length = 50)
 	private String status;
 
-	@Column
+	@Column(length = 500)
 	private String source;
 
-	@Column
+	@Column(length = 200)
 	private String level;
 
 	@Column(name = "level_id")
@@ -78,9 +78,11 @@ public class Entity implements Cloneable {
 	@Column(name = "translation", columnDefinition = "json")
 	private Map<String, Object> translation;
 
-	@Column
+	@Column (length = 50)
 	private String code;
 
+    @Column(length = 50)
+    private String language;
 
 	@Transient
 	private List<Map<String, Object>> children;
